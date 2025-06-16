@@ -80,5 +80,17 @@
             }
         });
     </script>
+
+    {{if .Error}}
+    <script>
+        window.onload = function() {
+            alert("{{.Error}}");
+            // Affiche le formulaire d'inscription si une erreur concerne l'inscription
+            document.getElementById('switchForm').checked = true;
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+    </script>
+    {{end}}
 </body>
 </html>

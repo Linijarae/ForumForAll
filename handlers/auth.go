@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"text/template"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -123,62 +124,49 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 		req.Password = r.FormValue("password")
 		req.ConfirmPassword = r.FormValue("confirmPassword")
 
-		//Vérification des valeurs
+		// Fonction utilitaire pour afficher la page avec une erreur
+		displayError := func(msg string) {
+			tmpl, _ := template.ParseFiles("templates/register.html")
+			tmpl.Execute(w, struct{ Error string }{Error: msg})
+		}
+
 		if req.Username == "" || req.Email == "" || req.Password == "" || req.ConfirmPassword == "" {
-			http.Error(w, "Tous les champs sont requis", http.StatusBadRequest)
+			displayError("Tous les champs sont requis")
 			return
 		}
 
-		//Vérification des mots de passe
 		if req.Password != req.ConfirmPassword {
-			http.Error(w, "Les mots de passe ne correspondent pas", http.StatusBadRequest)
+			displayError("Les mots de passe ne correspondent pas")
 			return
 		}
 
-		// Vérifier la longueur du mot de passe
 		if len(req.Password) < 12 {
-			http.Error(w, "Le mot de passe doit contenir au moins 12 caractères", http.StatusBadRequest)
+			displayError("Le mot de passe doit contenir au moins 12 caractères")
 			return
 		}
 
-		// Vérifier si l'utilisateur existe déjà
 		var exists bool
 		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM user WHERE username = ? OR mail = ?)", req.Username, req.Email).Scan(&exists)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"message": "Erreur lors de la vérification de l'utilisateur"})
+			displayError("Erreur lors de la vérification de l'utilisateur")
 			return
 		}
 		if exists {
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(map[string]string{"message": "Ce nom d'utilisateur ou cet email est déjà utilisé"})
+			displayError("Ce nom d'utilisateur ou cet email est déjà utilisé")
 			return
 		}
 
-		// Hasher le mot de passe
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"message": "Erreur lors du hachage du mot de passe"})
+			displayError("Erreur lors du hachage du mot de passe")
 			return
 		}
 
-		// Insérer le nouvel utilisateur
-		result, err := db.Exec("INSERT INTO user (username, mail, password, role_id) VALUES (?, ?, ?, 1)", req.Username, req.Email, string(hashedPassword))
+		_, err = db.Exec("INSERT INTO user (username, mail, password, role_id) VALUES (?, ?, ?, 1)", req.Username, req.Email, string(hashedPassword))
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"message": "Erreur lors de la création de l'utilisateur"})
+			displayError("Erreur lors de la création de l'utilisateur")
 			return
 		}
-
-		userID, err := result.LastInsertId()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"message": "Erreur lors de la récupération de l'ID utilisateur"})
-			return
-		}
-
-		fmt.Println(userID)
 
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
 	}

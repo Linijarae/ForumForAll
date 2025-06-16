@@ -8,7 +8,7 @@ Une application de forum simple construite avec Go et MySQL.
 - Création de topics
 - Réponses aux topics
 - Système de likes pour les topics
-- Tri des messages par date
+- Tri des messages par date et likes
 
 ## Prérequis
 
@@ -19,7 +19,7 @@ Une application de forum simple construite avec Go et MySQL.
 
 1. Clonez le dépôt :
 ```bash
-git clone <votre-repo>
+git clone https://github.com/Linijarae/ForumForAll.git
 cd ForumForAll
 ```
 
@@ -47,7 +47,7 @@ Pour démarrer l'application :
 go run main.go
 ```
 
-Le serveur démarrera sur le port 8080.
+Le serveur démarrera sur le port 8001.
 
 ## API Endpoints
 
@@ -76,6 +76,7 @@ Le serveur démarrera sur le port 8080.
     "password": "motdepasse"
 }
 ```
+Le mot de passe se doit d'être de 12 caractères minimum, avec un chiffre et un caractère spécial.
 
 ### Connexion
 ```json
